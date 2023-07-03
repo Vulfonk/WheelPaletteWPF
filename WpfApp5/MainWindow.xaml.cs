@@ -7,6 +7,7 @@ using System.Windows.Media.Imaging;
 using Image = System.Windows.Controls.Image;
 using System.IO;
 using System.Runtime.InteropServices.ComTypes;
+using System.Drawing;
 
 namespace WpfApp5
 {
@@ -19,7 +20,7 @@ namespace WpfApp5
         byte[] pixelData;
 
         Cursor mouseDownCursor;
-        Point pippetLastPosition;
+        System.Windows.Point pipetteLastPosition;
         bool lkmPressed;
 
         public MainWindow()
@@ -51,8 +52,8 @@ namespace WpfApp5
             }
             else
             {
-                Canvas.SetLeft(pipet, pippetLastPosition.X - pipet.Width / 2);
-                Canvas.SetTop(pipet, pippetLastPosition.Y - pipet.Height / 2);
+                Canvas.SetLeft(pipet, pipetteLastPosition.X - pipet.Width / 2);
+                Canvas.SetTop(pipet, pipetteLastPosition.Y - pipet.Height / 2);
             }
 
             pipet.Visibility = Visibility.Visible;
@@ -64,8 +65,8 @@ namespace WpfApp5
         {
             if (e.LeftButton == MouseButtonState.Pressed)
             {
-                Canvas.SetLeft(pipet, pippetLastPosition.X - pipet.Width / 2);
-                Canvas.SetTop(pipet, pippetLastPosition.Y - pipet.Height / 2);
+                Canvas.SetLeft(pipet, pipetteLastPosition.X - pipet.Width / 2);
+                Canvas.SetTop(pipet, pipetteLastPosition.Y - pipet.Height / 2);
                 pipet.Visibility = Visibility.Visible;
                 img.Cursor = (img.Parent as FrameworkElement).Cursor;
             }
@@ -107,8 +108,8 @@ namespace WpfApp5
             {
                 if (lkmPressed)
                 {
-                    Canvas.SetLeft(pipet, pippetLastPosition.X - pipet.Width / 2);
-                    Canvas.SetTop(pipet, pippetLastPosition.Y - pipet.Height / 2);
+                    Canvas.SetLeft(pipet, pipetteLastPosition.X - pipet.Width / 2);
+                    Canvas.SetTop(pipet, pipetteLastPosition.Y - pipet.Height / 2);
                     pipet.Visibility = Visibility.Visible;
                 }
 
@@ -125,7 +126,7 @@ namespace WpfApp5
             if (lkmPressed)
                 pipet.Visibility = Visibility.Hidden;
 
-            pippetLastPosition = point;
+            pipetteLastPosition = point;
 
             var pixel = GetPixelValue2(point.X, point.Y);
 
@@ -136,7 +137,7 @@ namespace WpfApp5
             txt_blockRGB.Background = new SolidColorBrush(pixel);
         }
 
-        public Color GetPixelValue2(double x, double y)
+        public System.Windows.Media.Color GetPixelValue2(double x, double y)
         {
             BitmapSource bitmapSource = (BitmapSource)img.Source;
 
@@ -153,11 +154,11 @@ namespace WpfApp5
             byte blue = pixelData[pixelIndex];
             byte alpha = pixelData[pixelIndex + 3];
 
-            Color pixelColor = Color.FromArgb(alpha, red, green, blue);
+            var pixelColor = System.Windows.Media.Color.FromArgb(alpha, red, green, blue);
             return pixelColor;
         }
 
-        public Color GetPixelValue(double x, double y)
+        public System.Windows.Media.Color GetPixelValue(double x, double y)
         {
             BitmapSource bitmapSource = (BitmapSource)img.Source;
 
@@ -173,7 +174,7 @@ namespace WpfApp5
             byte blue = pixelData[pixelIndex];
             byte alpha = pixelData[pixelIndex + 3];
 
-            Color pixelColor = Color.FromArgb(alpha, red, green, blue);
+            var pixelColor =  System.Windows.Media.Color.FromArgb(alpha, red, green, blue);
             return pixelColor;
         }
 
@@ -214,7 +215,7 @@ namespace WpfApp5
 
         }
 
-        int ColorDiff(Color left, Color right)
+        int ColorDiff(System.Windows.Media.Color left, System.Windows.Media.Color right)
         {
             var sub = Math.Abs(left.R - right.R);
             sub += Math.Abs(left.G - right.G);
@@ -223,11 +224,72 @@ namespace WpfApp5
             return sub;
         }
 
-        private void txt_blockR_TextChanged(object sender, RoutedEventArgs e)
+        private void ChangeBrightness(byte brightness)
         {
 
+            BitmapSource bitmapSource = (BitmapSource)img.Source;
+            var newbitmapSource = new Bitmap((int)bitmapSource.Width, (int)bitmapSource.Height);
+
+
+            byte[] color = new byte[4];
+            for(int i = 0; i < pixelData.Length; i+=4)
+            {
+                byte red = pixelData[i + 2];
+                byte green = pixelData[i + 1];
+                byte blue = pixelData[i];
+                byte alpha = pixelData[i + 3];
+
+                byte newRed = (byte)(red * brightness);
+                byte newGreen = (byte)(green * brightness);
+                byte newBlue = (byte)(blue * brightness);
+/*
+                pixelData[i + 2] = newRed;
+                pixelData[i + 1] = newGreen;
+                pixelData[i] = newBlue;
+*/
+                var pixel = System.Drawing.Color.FromArgb(255, newRed, newGreen, newBlue);
+
+                int x = (i / 4) % (int)bitmapSource.Width;
+                int y = i / ((int)bitmapSource.Width * 4);
+
+
+                newbitmapSource.SetPixel(x, y, pixel);
+            }
+
+            img.Source = Convert(newbitmapSource);
+
+
+            // return the new bitmap
+            //return dest;
+        }
+
+        public static BitmapSource Convert(System.Drawing.Bitmap bitmap)
+        {
+            var bitmapData = bitmap.LockBits(
+                new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                System.Drawing.Imaging.ImageLockMode.ReadOnly, bitmap.PixelFormat);
+
+            var bitmapSource = BitmapSource.Create(
+                bitmapData.Width, bitmapData.Height,
+                bitmap.HorizontalResolution, bitmap.VerticalResolution,
+                PixelFormats.Bgr24, null,
+                bitmapData.Scan0, bitmapData.Stride * bitmapData.Height, bitmapData.Stride);
+
+            bitmap.UnlockBits(bitmapData);
+
+            return bitmapSource;
+        }
+
+
+        private void txt_blockR_TextChanged(object sender, RoutedEventArgs e)
+        {
+            var R = byte.Parse(txt_blockR.Text);
+            var G = byte.Parse(txt_blockG.Text);
+            var B = byte.Parse(txt_blockB.Text);
+            byte brightness = (byte)((R + G + B) / 3);
+            ChangeBrightness(brightness);
             return;
-            try
+           /* try
             {
 
                 var txtBox = (sender as TextBox);
@@ -306,7 +368,7 @@ namespace WpfApp5
             catch (Exception ex)
             {
 
-            }
+            }*/
 
         }
     }
