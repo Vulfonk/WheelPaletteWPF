@@ -1,0 +1,30 @@
+﻿<Window x:Class="WpfApp5.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp5"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+
+    
+    <DockPanel>
+        <StackPanel>
+            <TextBox LostFocus="txt_blockR_TextChanged" Height="40"  Width ="100" Background="AliceBlue" x:Name="txt_blockR"></TextBox>
+            <TextBox LostFocus="txt_blockR_TextChanged" Height="40"  Width ="100" Background="AliceBlue" x:Name="txt_blockG"></TextBox>
+            <TextBox LostFocus="txt_blockR_TextChanged" Height="40"  Width ="100" Background="AliceBlue" x:Name="txt_blockB"></TextBox>
+            <TextBlock Height="40"  Width ="100" x:Name="txt_blockRGB"></TextBlock>
+        </StackPanel>
+        <Grid>
+            <Image MinHeight="40" MinWidth="40" Loaded="img_Loaded" x:Name="img" MouseUp="Image_MouseUp" MouseDown="Image_MouseDown" MouseMove="Image_MouseEnter" MouseLeave="img_MouseLeave" Source="Color_circle_RGB.PNG" >
+
+            </Image>
+            <Canvas IsHitTestVisible="False" SizeChanged="canvas_SizeChanged" x:Name="canvas" Width="{Binding ElementName=img, Path=ActualHeight}" Height="{Binding ElementName=img, Path=ActualHeight}">
+                <Border x:Name="pipet" Width="12" Height="12" BorderBrush="Black" BorderThickness="3" CornerRadius="50">
+                    <Ellipse />
+                </Border>
+
+            </Canvas>
+        </Grid>
+    </DockPanel>
+</Window>
