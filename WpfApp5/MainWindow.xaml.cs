@@ -1,22 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Drawing;
-using System.CodeDom;
-using System.Windows.Ink;
-using System.Windows.Interop;
 using Image = System.Windows.Controls.Image;
+using System.IO;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace WpfApp5
 {
@@ -30,17 +20,23 @@ namespace WpfApp5
 
         Cursor mouseDownCursor;
         Point pippetLastPosition;
-
+        bool lkmPressed;
 
         public MainWindow()
         {
             InitializeComponent();
-            mouseDownCursor = new Cursor("C:\\Users\\admin\\source\\repos\\WpfApp5\\WpfApp5\\circle.cur");
+            var dir = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            dir = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(dir)));
+            var cur_path = Path.Combine(dir, "circle.cur");
+            mouseDownCursor = new Cursor(cur_path);
         }
 
 
         private void Image_MouseUp(object sender, MouseEventArgs e)
         {
+            if (!lkmPressed)
+                return;
+
             var point = e.GetPosition(img);
             var r = img.ActualWidth / 2;
             var xm = point.X - r;
@@ -71,11 +67,14 @@ namespace WpfApp5
                 Canvas.SetLeft(pipet, pippetLastPosition.X - pipet.Width / 2);
                 Canvas.SetTop(pipet, pippetLastPosition.Y - pipet.Height / 2);
                 pipet.Visibility = Visibility.Visible;
+                img.Cursor = (img.Parent as FrameworkElement).Cursor;
             }
         }
 
         private void Image_MouseDown(object sender, MouseEventArgs e)
         {
+            if (!lkmPressed)
+                return;
 
             img.Cursor = mouseDownCursor;
             pipet.Visibility = Visibility.Hidden;
@@ -102,6 +101,7 @@ namespace WpfApp5
 
             bool lkmPressed = e.LeftButton == MouseButtonState.Pressed;
 
+            this.lkmPressed = lkmPressed;
 
             if (!isIn)
             {
@@ -214,84 +214,100 @@ namespace WpfApp5
 
         }
 
-        bool IsColorEquals(Color left, Color right)
+        int ColorDiff(Color left, Color right)
         {
-            var sub = left.R - right.R;
-            if (Math.Abs(sub) > 5)
-                return false;
+            var sub = Math.Abs(left.R - right.R);
+            sub += Math.Abs(left.G - right.G);
+            sub += Math.Abs(left.B - right.B);
 
-            sub = left.G - right.G;
-            if (Math.Abs(sub) > 5)
-                return false;
-
-            sub = left.B - right.B;
-            if (Math.Abs(sub) > 5)
-                return false;
-            return true;
+            return sub;
         }
 
         private void txt_blockR_TextChanged(object sender, RoutedEventArgs e)
         {
-            /*var txtBox = (sender as TextBox);
-            var newText = txtBox.Text;
-            byte R, G, B;
-            
-            if (string.IsNullOrEmpty(txt_blockR.Text))
-                return;
 
-            if (string.IsNullOrEmpty(txt_blockG.Text))
-                return;
-
-            if (string.IsNullOrEmpty(txt_blockB.Text))
-                return;
-
-            if (txtBox == txt_blockR)
+            return;
+            try
             {
-                R = byte.Parse(newText);
-                G = byte.Parse(txt_blockG.Text);
-                B = byte.Parse(txt_blockB.Text);
-            }
-            else if (txtBox == txt_blockB)
-            {
-                R = byte.Parse(txt_blockR.Text);
-                G = byte.Parse(txt_blockG.Text);
-                B = byte.Parse(newText);
-            }
-            else if (txtBox == txt_blockG)
-            {
-                R = byte.Parse(txt_blockR.Text);
-                G = byte.Parse(newText);
-                B = byte.Parse(txt_blockB.Text);
-            }
-            else
-            {
-                throw new Exception();
-            }
 
-            Color color = Color.FromArgb(255, R, G, B);
+                var txtBox = (sender as TextBox);
+                var newText = txtBox.Text;
+                byte R, G, B;
 
-            BitmapSource bmp = (BitmapSource)img.Source;
-            var r = bmp.Height / 2;
-            var ratio = bmp.Height / img.ActualHeight;
-            for (int i = 0; i < bmp.Height; i++)
-            {
-                for (int j = 0; j < bmp.Width; j++)
-                { 
-                    var isIn = i * i + j * j <= r * r;
-                    if (!isIn)
-                        continue;
+                if (string.IsNullOrEmpty(txt_blockR.Text))
+                    return;
 
-                    var ijColor = GetPixelValue(i, j);
-                    if (IsColorEquals(ijColor ,color))
-                    {
-                        Canvas.SetLeft(pipet, i / ratio);
-                        Canvas.SetTop(pipet, j / ratio);
-                        txt_blockRGB.Background = new SolidColorBrush(color);
+                if (string.IsNullOrEmpty(txt_blockG.Text))
+                    return;
 
-                    }
+                if (string.IsNullOrEmpty(txt_blockB.Text))
+                    return;
 
+                if (txtBox == txt_blockR)
+                {
+                    R = byte.Parse(newText);
+                    G = byte.Parse(txt_blockG.Text);
+                    B = byte.Parse(txt_blockB.Text);
                 }
-            }*/
+                else if (txtBox == txt_blockB)
+                {
+                    R = byte.Parse(txt_blockR.Text);
+                    G = byte.Parse(txt_blockG.Text);
+                    B = byte.Parse(newText);
+                }
+                else if (txtBox == txt_blockG)
+                {
+                    R = byte.Parse(txt_blockR.Text);
+                    G = byte.Parse(newText);
+                    B = byte.Parse(txt_blockB.Text);
+                }
+                else
+                {
+                    throw new Exception();
+                }
+
+                Color color = Color.FromArgb(255, R, G, B);
+
+                BitmapSource bmp = (BitmapSource)img.Source;
+                var r = bmp.Height / 2;
+                var ratio = bmp.Height / img.ActualHeight;
+                int minDif = int.MaxValue;
+                Point minDifPoint = new Point();
+
+                for (int i = 0; i < bmp.Height; i++)
+                {
+                    for (int j = 0; j < bmp.Width; j++)
+                    {
+                        var xm = i - r;
+                        var ym = j - r;
+                        var isIn = xm * xm + ym * ym <= r * r;
+                        if (!isIn)
+                            continue;
+
+                        var ijColor = GetPixelValue(i, j);
+
+                        var curDiff = ColorDiff(color, ijColor);
+
+                        if (minDif > curDiff)
+                        {
+                            minDif = curDiff;
+                            minDifPoint = new Point(i, j);
+                        }
+                    }
+                }
+
+                if (minDif != int.MaxValue)
+                {
+                    Canvas.SetLeft(pipet, minDifPoint.X / ratio);
+                    Canvas.SetTop(pipet, minDifPoint.Y / ratio);
+                    txt_blockRGB.Background = new SolidColorBrush(color);
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
+
         }
     }
 }
