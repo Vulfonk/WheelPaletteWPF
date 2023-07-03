@@ -8,6 +8,7 @@ using Image = System.Windows.Controls.Image;
 using System.IO;
 using System.Runtime.InteropServices.ComTypes;
 using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace WpfApp5
 {
@@ -224,12 +225,11 @@ namespace WpfApp5
             return sub;
         }
 
-        private void ChangeBrightness(byte brightness)
+        private void ChangeBrightness(double brightness)
         {
 
             BitmapSource bitmapSource = (BitmapSource)img.Source;
-            var newbitmapSource = new Bitmap((int)bitmapSource.Width, (int)bitmapSource.Height);
-
+            var newbitmapSource = new Bitmap((int)bitmapSource.Width, (int)bitmapSource.Height);            
 
             byte[] color = new byte[4];
             for(int i = 0; i < pixelData.Length; i+=4)
@@ -250,7 +250,7 @@ namespace WpfApp5
                 var pixel = System.Drawing.Color.FromArgb(255, newRed, newGreen, newBlue);
 
                 int x = (i / 4) % (int)bitmapSource.Width;
-                int y = i / ((int)bitmapSource.Width * 4);
+                int y = (i / 4) / (int)bitmapSource.Width;
 
 
                 newbitmapSource.SetPixel(x, y, pixel);
@@ -286,7 +286,7 @@ namespace WpfApp5
             var R = byte.Parse(txt_blockR.Text);
             var G = byte.Parse(txt_blockG.Text);
             var B = byte.Parse(txt_blockB.Text);
-            byte brightness = (byte)((R + G + B) / 3);
+            double brightness = (double)(R + G + B) / (3 * 255);
             ChangeBrightness(brightness);
             return;
            /* try
